@@ -1,0 +1,6 @@
+[submodule "submodule/Xu3"]
+	path = submodule/Xu3
+	url = https://github.com/j32u4ukh/Xu3.git
+[submodule "submodule/events"]
+	path = submodule/events
+	url = https://github.com/j32u4ukh/events.git
