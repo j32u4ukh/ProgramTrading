@@ -7,8 +7,12 @@ from submodule.Xu3.utils import getLogger
 from submodule.events import Event
 
 
-class DataLoader(metaclass=ABCMeta):
-    def __init__(self, logger_dir="data_loader", logger_name=datetime.datetime.now().strftime("%Y-%m-%d_%H-%M-%S")):
+class IDataLoader(metaclass=ABCMeta):
+    """
+    定義提供給報價系統(Quote)的數據類別，必須要提供的方法
+    """
+
+    def __init__(self, logger_dir="database_loader", logger_name=datetime.datetime.now().strftime("%Y-%m-%d_%H-%M-%S")):
         self.logger_dir = logger_dir
         self.logger_name = logger_name
         self.extra = {"className": self.__class__.__name__}
@@ -18,21 +22,66 @@ class DataLoader(metaclass=ABCMeta):
                                 file_dir=self.logger_dir,
                                 instance=True)
 
+    @abstractmethod
+    def __iter__(self):
+        raise NotImplementedError
+
+    @abstractmethod
+    def setLoggerLevel(self, level):
+        pass
+
+    @abstractmethod
+    def subscribe(self, ohlc_type, requests: list):
+        pass
+
+    @abstractmethod
+    def getRequestStockNumber(self, ohlc_type, requests: list):
+        pass
+
+    @abstractmethod
+    def getRequestStocks(self, ohlc_type):
+        pass
+
+    @abstractmethod
+    def loadData(self, start_time: datetime.datetime, end_time: datetime.datetime):
+        # 載入指定時間區間內的數據，並根據時間進行排序
+        pass
+
+    @abstractmethod
+    def close(self):
+        # 關閉資料庫
+        pass
+
+
+class DataLoader(IDataLoader):
+    def __init__(self, logger_dir="data_loader", logger_name=datetime.datetime.now().strftime("%Y-%m-%d_%H-%M-%S")):
+        super().__init__(logger_dir=logger_dir, logger_name=logger_name)
+
         self.start_time = None
         self.end_time = None
         self.n_data = 0
         self.event = Event()
 
-    @abstractmethod
     def __iter__(self):
-        pass
-
-    @abstractmethod
-    def loadData(self, start_time: datetime.datetime = None, end_time: datetime.datetime = None):
         pass
 
     def setLoggerLevel(self, level):
         self.logger.setLevel(level=level)
+
+    def subscribe(self, ohlc_type, requests: list):
+        pass
+
+    def getRequestStockNumber(self, ohlc_type, requests: list):
+        pass
+
+    def getRequestStocks(self, ohlc_type):
+        pass
+
+    def loadData(self, start_time: datetime.datetime, end_time: datetime.datetime):
+        pass
+
+    def close(self):
+        pass
 
 
 def getAverage(df, column_name, n_data=30):

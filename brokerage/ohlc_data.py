@@ -1,3 +1,4 @@
+from abc import abstractmethod
 from functools import total_ordering
 
 from enums import OhlcType
@@ -32,7 +33,7 @@ class OhlcData:
 
     __str__ = __repr__
 
-    # region total_ordering: 使得我可以只定義 __eq__ 和 __gt__ 就可進行完整的比較
+    # region total_ordering: 使得可以只定義 __eq__ 和 __gt__ 就可進行完整的比較
     # https://python3-cookbook.readthedocs.io/zh_CN/latest/c08/p24_making_classes_support_comparison_operations.html
     def __eq__(self, other):
         return self.date == other.date and self.ohlc_type == other.ohlc_type
@@ -50,6 +51,7 @@ class OhlcData:
 
     # endregion
 
+    @abstractmethod
     def formData(self):
         ohlcv = f"{self.open_value}, {self.high_value}, {self.low_value}, {self.close_value}, {self.volumn}"
 

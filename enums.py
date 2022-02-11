@@ -1,6 +1,19 @@
 from enum import Enum
 
 
+class OhlcType(Enum):
+    # Tick
+    Tick = 0
+    # 1 分鐘 Ohlc
+    Minute = 1
+    # 完整日 Ohlc
+    Day = 2
+    # 週 Ohlc
+    Week = 3
+    # 月 Ohlc
+    Month = 4
+
+
 class Stage(Enum):
     """
     對於同時使用 API 與自己定義的類別(如回測系統)，同一個事件監聽器可能被不同需求所使用，
@@ -179,19 +192,6 @@ class SmartOrder(Enum):
     MIOC = "MIOC"
     # 移動停損
     MST = "MST"
-
-
-class OhlcType(Enum):
-    # Tick
-    Tick = -1
-    # 1 分鐘 Ohlc
-    Minute = 0
-    # 完整日 Ohlc
-    Day = 4
-    # 週 Ohlc
-    Week = 5
-    # 月 Ohlc
-    Month = 6
 
 
 class BuySell(Enum):
