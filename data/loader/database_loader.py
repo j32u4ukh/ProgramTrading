@@ -7,7 +7,7 @@ import numpy as np
 import utils.jikan as jikan
 from data import StockCategory, parseOhlcData
 from data.loader import DataLoader
-from data.resource.ohlc_data import DayOhlcData, MinuteOhlcData
+from examples.data.resource.ohlc_data import DayOhlcData, MinuteOhlcData
 from utils import truncatedNormal, getValidPrices
 
 

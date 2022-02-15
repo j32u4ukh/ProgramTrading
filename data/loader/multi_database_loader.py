@@ -4,7 +4,7 @@ from collections import defaultdict
 
 from brokerage.ohlc_data import OhlcData
 from data.loader import DataLoader
-from data.resource.ohlc_data import DayOhlcData
+from examples.data.resource.ohlc_data import DayOhlcData
 from enums import OhlcType
 
 

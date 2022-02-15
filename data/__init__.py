@@ -2,7 +2,7 @@ import datetime
 import json
 from decimal import Decimal
 
-from data.resource.stock_list import StockList
+from data.database.stock_list import StockListBase
 from enums import Category
 
 

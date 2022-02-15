@@ -1,13 +1,12 @@
 import datetime
-import functools
 import logging
 
-from data.resource import ResourceData
+from data.database.ohlc_data import OhlcDataBase
 
 
-class DayOhlcData(ResourceData):
-    def __init__(self, stock_id, latest_time=None, level: logging = logging.INFO,
-                 logger_dir="resource_data", logger_name=datetime.datetime.now().strftime("%Y-%m-%d_%H-%M-%S")):
+class DayOhlcData(OhlcDataBase):
+    def __init__(self, stock_id, folder="examples/data", latest_time=None, level: logging = logging.INFO,
+                 logger_dir="ohlc_data", logger_name=datetime.datetime.now().strftime("%Y-%m-%d_%H-%M-%S")):
         """
 
         :param stock_id:
@@ -15,11 +14,11 @@ class DayOhlcData(ResourceData):
         :param logger_dir:
         :param logger_name:
         """
-        super().__init__(db_name="stock_data", logger_dir=logger_dir, logger_name=logger_name)
+        super().__init__(db_name="stock_data", folder=folder, logger_dir=logger_dir, logger_name=logger_name)
         self.setLoggerLevel(level=level)
 
         self.stock_id = stock_id
-        self.getDataTable()
+        self.getTable()
         self.last_day = None
         today = datetime.datetime.today()
         latest_time = datetime.datetime(year=today.year, month=1, day=1) if latest_time is None else latest_time
@@ -28,10 +27,13 @@ class DayOhlcData(ResourceData):
         self.last_segement = datetime.datetime(1970, 1, 1)
         self.delta_segement = datetime.timedelta(days=20)
 
+    def __del__(self):
+        super().__del__()
+
     def setLoggerLevel(self, level: logging):
         self.logger.setLevel(level)
 
-    def getDataTable(self, table_name="", table_definition=""):
+    def getTable(self, table_name="", table_definition=""):
         table_name = f"DAY_{self.stock_id}"
         table_definition = """TIME   TEXT    PRIMARY KEY NOT NULL,
         OPEN    TEXT    NOT NULL,
@@ -89,16 +91,7 @@ class DayOhlcData(ResourceData):
         if last_day.date() == datetime.date.today():
             self.logger.info(values, extra=self.extra)
 
-        super().add_(primary_column=primary_column, values=values)
-
-    def displayDayData(self, columns: list = None,
-                       sort_by: str = "TIME", sort_type="ASC",
-                       limit: int = 20, offset: int = 0):
-        result = super().select(table_name=self.table_name, columns=columns,
-                                sort_by=sort_by, sort_type=sort_type,
-                                limit=limit, offset=offset)
-        for res in result:
-            print(res)
+        super().addData(primary_column=primary_column, values=values)
 
     def getHistoryData(self, end_time: datetime.datetime, start_time: datetime.datetime = None):
         history = super().getHistoryData(start_time=start_time, end_time=end_time)
@@ -107,21 +100,24 @@ class DayOhlcData(ResourceData):
 
 
 # 1分鐘線
-class MinuteOhlcData(ResourceData):
-    def __init__(self, stock_id, latest_time=None,
-                 logger_dir="resource_data", logger_name=datetime.datetime.now().strftime("%Y-%m-%d_%H-%M-%S")):
-        super().__init__(db_name="stock_data", logger_dir=logger_dir, logger_name=logger_name)
+class MinuteOhlcData(OhlcDataBase):
+    def __init__(self, stock_id, folder="examples/data", latest_time=None,
+                 logger_dir="ohlc_data", logger_name=datetime.datetime.now().strftime("%Y-%m-%d_%H-%M-%S")):
+        super().__init__(db_name="stock_data", folder=folder, logger_dir=logger_dir, logger_name=logger_name)
         self.stock_id = stock_id
-        self.getDataTable()
+        self.getTable()
         self.last_minute = None
         today = datetime.datetime.today()
         latest_time = datetime.datetime(year=today.year, month=1, day=1) if latest_time is None else latest_time
         self.getLastTime(latest_time=latest_time)
 
+    def __del__(self):
+        super().__del__()
+
     def setLoggerLevel(self, level: logging.INFO):
         self.logger.setLevel(level)
 
-    def getDataTable(self, table_name="", table_definition=""):
+    def getTable(self, table_name="", table_definition=""):
         table_name = f"MINUTE_{self.stock_id}"
         table_definition = """TIME   TEXT    PRIMARY KEY NOT NULL,
         OPEN    TEXT    NOT NULL,
@@ -170,17 +166,7 @@ class MinuteOhlcData(ResourceData):
         if last_minute.date() == datetime.date.today():
             self.logger.info(values, extra=self.extra)
 
-        super().add_(primary_column="TIME", values=values)
-
-    def displayMinuteData(self, columns: list = None,
-                          sort_by: str = "TIME", sort_type="ASC",
-                          limit: int = 20, offset: int = 0):
-        result = super().select(table_name=self.table_name, columns=columns,
-                                sort_by=sort_by, sort_type=sort_type,
-                                limit=limit, offset=offset)
-
-        for res in result:
-            print(res)
+        super().addData(primary_column="TIME", values=values)
 
     def getHistoryData(self, end_time: datetime.datetime, start_time: datetime.datetime = None):
         history = super().getHistoryData(start_time=start_time, end_time=end_time)
@@ -188,93 +174,32 @@ class MinuteOhlcData(ResourceData):
         return history
 
 
-def sortOhlcDatas(ohlc_datas):
-    """
-    將 Ohlc Data 做排序，排序順序為: 時間(越早越前)
-    ohlc_datas -> [stock_id, date, (time, open, high, low, close, volumn)]
-
-    :param ohlc_datas: 所有請求
-    :return:
-    """
-
-    def compareOhlcDatas(od1, od2):
-        """
-        sorted()也是一個高階函式，它可以接收一個比較函式來實現自定義排序，
-        比較函式的定義是，傳入兩個待比較的元素 x, y，
-        如果 x 應該排在 y 的前面，返回 -1，
-        如果 x 應該排在 y 的後面，返回 1。
-        如果 x 和 y 相等，返回 0。
-
-        def customSort(x, y):
-            if x > y:
-                return -1
-            if x < y:
-                return 1
-            return 0
-
-        print(sorted([2,4,5,7,3], key=functools.cmp_to_key(customSort)))
-        -> [7, 5, 4, 3, 2]
-
-        :param od1: 請求 1
-        :param od2: 請求 2
-        :return:
-        """
-        # stock_id, (time, open, high, low, close, volumn) = ohlc_data
-        _, date1, (time1, _, _, _, _, _) = od1
-        _, date2, (time2, _, _, _, _, _) = od2
-
-        if date1 < date2:
-            return -1
-        elif date1 > date2:
-            return 1
-        else:
-            # time1 為日線數據，放後面
-            if time1 == "":
-                return 1
-
-            # time1 為分線數據，放前面
-            elif time2 == "":
-                return -1
-
-            # time1, time2 都是分線數據
-            else:
-                if time1 < time2:
-                    return -1
-                elif time1 > time2:
-                    return 1
-                else:
-                    return 0
-
-    # 透過自定義規則函式 compareRequests 來對 requests 來進行排序
-    return sorted(ohlc_datas, key=functools.cmp_to_key(compareOhlcDatas))
-
-
 if __name__ == "__main__":
+    class DayOhlcDataTester:
+        def __init__(self, stock_id):
+            self.day_data = DayOhlcData(stock_id=stock_id)
 
-    class OhlcDataTester:
-        @staticmethod
-        def arbitraryTest():
-            day_data = DayOhlcData(stock_id="3037")
-            datas = day_data.selectTimeFliter(start_time=datetime.datetime(2021, 9, 28),
-                                              end_time=datetime.datetime(2021, 10, 5))
+        def __del__(self):
+            self.day_data.close()
+
+        def arbitraryTest(self):
+            datas = self.day_data.selectTimeFliter(start_time=datetime.datetime(2021, 9, 28),
+                                                   end_time=datetime.datetime(2021, 10, 5))
 
             for data in datas:
                 print(data)
 
-        @staticmethod
-        def checkOhlcDayData():
-            day_data = DayOhlcData(stock_id="2812")
-            # history = day_data.getHistoryData(end_time=datetime.datetime.today())
-            #
-            # for key, value in history.items():
-            #     print(f"{key}: {value}")
-            #
-            #     if key == "volumns":
-            #         avg_volumn = np.mean(value)
-            #         print(f"avg_volumn: {avg_volumn}")
+        def display(self, columns: list = None, sort_by: str = "TIME", sort_type="ASC",
+                    limit: int = 20, offset: int = 0):
+            results = self.day_data.select(columns=columns, sort_by=sort_by, sort_type=sort_type,
+                                           limit=limit, offset=offset)
 
+            for result in results:
+                print(result)
+
+        def checkOhlcDayData(self):
             # head = day_data.head(sort_by="TIME")
-            tail = day_data.tail(sort_by="TIME")
+            tail = self.day_data.tail(sort_by="TIME")
             # head_list = list(head)
             tail_list = list(tail)
             # print(head_list)
@@ -282,41 +207,31 @@ if __name__ == "__main__":
             for data in tail_list:
                 print(data)
 
-            day_data.close()
 
-        @staticmethod
-        def testMinuteData(stock_id="2887"):
-            minute_data = MinuteOhlcData(stock_id=stock_id)
-            # minute_data.displayMinuteData(limit=30, sort_type="DESC")
+    class MinuteOhlcDataTester:
+        def __init__(self, stock_id):
+            self.minute_data = MinuteOhlcData(stock_id=stock_id)
 
-            head = minute_data.head(sort_by="TIME")
-            tail = minute_data.tail(sort_by="TIME")
+        def __del__(self):
+            self.minute_data.close()
+
+        def display(self, columns: list = None, sort_by: str = "TIME", sort_type="ASC",
+                    limit: int = 20, offset: int = 0):
+            result = self.minute_data.select(columns=columns, sort_by=sort_by, sort_type=sort_type,
+                                             limit=limit, offset=offset)
+
+            for res in result:
+                print(res)
+
+        def checkMinuteOhlcData(self):
+            head = self.minute_data.head(sort_by="TIME")
+            tail = self.minute_data.tail(sort_by="TIME")
 
             head_list = list(head)
             tail_list = list(tail)
             print("head_list\n", head_list)
             print("tail_list\n", tail_list)
 
-            minute_data.close()
 
-        @staticmethod
-        def testFliterByTime(stock_id="2331"):
-            data = DayOhlcData(stock_id=stock_id)
-            print(data.head())
-            start_time, end_time, delta_time = data.getTimeSection(is_minute_data=False)
-            print(f"TimeSection: {start_time} ~ {end_time} | delta_time: {delta_time}")
-            result = data.selectTimeFliter(start_time=datetime.datetime(2019, 12, 10, 9, 0),
-                                           end_time=datetime.datetime(2019, 12, 20, 9, 0),
-                                           sort_by="TIME")
-
-            for res in result:
-                print(res)
-
-            data.close()
-
-
-    # OhlcDataTester.arbitraryTest()
-    # TODO: 重寫 9/28(含) 以後的數據，
-    #  正確 ('2021/09/27', '11.55', '11.65', '11.50', '11.55', 6277),
-    #  有誤 ('2021/09/28', ' 11.60', ' 11.65', ' 11.55', ' 11.60', 3953) 價格前不應有空格
-    OhlcDataTester.checkOhlcDayData()
+    dt = DayOhlcDataTester(stock_id="2812")
+    dt.checkOhlcDayData()

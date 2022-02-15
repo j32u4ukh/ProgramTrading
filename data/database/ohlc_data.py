@@ -1,45 +1,31 @@
 import datetime
 from abc import ABCMeta, abstractmethod
 from decimal import Decimal, ROUND_HALF_UP
-from enum import Enum
 
 import numpy as np
 
 from submodule.Xu3.database import DataBase
 
 
-class ResourceData(DataBase, metaclass=ABCMeta):
-    # TODO: 欄位或許可用這個形式傳入？
-    class ColumnName(Enum):
-        Time = "TIME"
-        Open = "OPEN"
-        High = "HIGH"
-        Low = "LOW"
-        Close = "CLOSE"
-        Vol = "VOL"
+class OhlcDataBase(DataBase, metaclass=ABCMeta):
+    def __init__(self, db_name="stock_data", folder="data",
+                 logger_dir="ohlc_data", logger_name=datetime.datetime.now().strftime("%Y-%m-%d_%H-%M-%S")):
+        super().__init__(db_name=db_name, folder=folder, logger_dir=logger_dir, logger_name=logger_name)
 
-    def __init__(self, db_name,
-                 logger_dir="resource_data", logger_name=datetime.datetime.now().strftime("%Y-%m-%d_%H-%M-%S")):
-        super().__init__(db_name=db_name, logger_dir=logger_dir, logger_name=logger_name)
+    def __del__(self):
+        super().__del__()
 
     @abstractmethod
     def setLoggerLevel(self, level):
         self.logger.setLevel(level=level)
 
     @abstractmethod
-    def getDataTable(self, table_name, table_definition):
+    def getTable(self, table_name, table_definition):
         super().getTable(table_name=table_name, table_definition=table_definition)
 
     @abstractmethod
     def getLastTime(self, latest_time: datetime.datetime):
-        def parseTime(str_time):
-            return datetime.datetime.strptime(str_time, "%Y/%m/%d %H:%M")
-
-        last_time = self.getLastTimeCore(temp_time=None,
-                                         latest_time=latest_time,
-                                         time_column="MINUTE",
-                                         parseTime=parseTime)
-        return last_time
+        pass
 
     @abstractmethod
     def getDataInfo(self, is_minute_data: bool):
@@ -79,7 +65,8 @@ class ResourceData(DataBase, metaclass=ABCMeta):
 
     @abstractmethod
     def addData(self, primary_column: str, values: list = None, check_sequence=True):
-        super().add_(primary_column=primary_column, values=values)
+        # super().add_(primary_column=primary_column, values=values)
+        super().add(values=values, primary_column=primary_column)
 
     @abstractmethod
     def getHistoryData(self, end_time: datetime.datetime, start_time: datetime.datetime = None):
@@ -223,9 +210,6 @@ class ResourceData(DataBase, metaclass=ABCMeta):
 
 
 if __name__ == "__main__":
-
-
-
     database = DataBase(db_name="stock_data")
     # database.deleteTable(table_name="STOCK_LIST")
     result = database.getAllTableName()
