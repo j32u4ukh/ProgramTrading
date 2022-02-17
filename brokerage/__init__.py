@@ -41,19 +41,17 @@ class Brokerage:
 
         self.quote.onDayStart += self.reply.onDayStartListener
         self.quote.onDayEnd += self.reply.onDayEndListener
-        self.quote.onOrderDayOhlcNotify += self.order.onOhlcNotifyListener
-        self.quote.onOrderMinuteOhlcNotify += self.order.onOhlcNotifyListener
+        self.quote.onDayOhlcNotify += self.order.onOhlcNotifyListener
+        self.quote.onMinuteOhlcNotify += self.order.onOhlcNotifyListener
 
         # self.reply.onDayStartProcessed += self.onDayStartProcessedListener
         # self.reply.onDayEndProcessed += self.onDayEndProcessedListener
 
-    # 提供給策略連結 Quote 的日線數據監聽器
     def setDayOhlcNotifyListener(self, listener):
-        self.quote.onOrderDayOhlcNotify += listener
+        self.quote.setDayOhlcNotifyListener(listener=listener)
 
-    # 提供給 RivalStrategy 連結 Quote 的分線數據監聽器
     def setMinuteOhlcNotifyListener(self, listener):
-        self.quote.onOrderMinuteOhlcNotify += listener
+        self.quote.setMinuteOhlcNotifyListener(listener=listener)
 
     def subscribe(self, ohlc_type: OhlcType, request_ohlcs: list):
         # TODO: 回測系統的參數是策略，自動取出策略的 OhlcType 和相對應的股票代碼

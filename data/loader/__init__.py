@@ -35,7 +35,7 @@ class IDataLoader(metaclass=ABCMeta):
         pass
 
     @abstractmethod
-    def getRequestStockNumber(self, ohlc_type, requests: list):
+    def getRequestStockNumber(self, ohlc_type):
         pass
 
     @abstractmethod
@@ -53,9 +53,16 @@ class IDataLoader(metaclass=ABCMeta):
         pass
 
 
-class DataLoader(IDataLoader):
+class DataLoader:
     def __init__(self, logger_dir="data_loader", logger_name=datetime.datetime.now().strftime("%Y-%m-%d_%H-%M-%S")):
-        super().__init__(logger_dir=logger_dir, logger_name=logger_name)
+        self.logger_dir = logger_dir
+        self.logger_name = logger_name
+        self.extra = {"className": self.__class__.__name__}
+        self.logger = getLogger(logger_name=self.logger_name,
+                                to_file=True,
+                                time_file=False,
+                                file_dir=self.logger_dir,
+                                instance=True)
 
         self.start_time = None
         self.end_time = None
@@ -71,7 +78,7 @@ class DataLoader(IDataLoader):
     def subscribe(self, ohlc_type, requests: list):
         pass
 
-    def getRequestStockNumber(self, ohlc_type, requests: list):
+    def getRequestStockNumber(self, ohlc_type):
         pass
 
     def getRequestStocks(self, ohlc_type):

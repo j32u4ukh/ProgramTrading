@@ -24,8 +24,8 @@ class Quote:
                                 instance=True)
         self.logger.setLevel(logging.DEBUG)
 
-        self.multi_database_loader = MultiDatabaseLoader(logger_dir=self.logger_dir,
-                                                         logger_name=self.logger_name)
+        self.loader = MultiDatabaseLoader(logger_dir=self.logger_dir,
+                                          logger_name=self.logger_name)
 
         self.event = Event()
 
@@ -35,21 +35,21 @@ class Quote:
         # onMinuteOhlcNotify(stock_id, ohlc_data)
         self.onMinuteOhlcNotify = self.event.onMinuteOhlcNotify
 
-        # onOrderDayOhlcNotify(stock_id, ohlc_data)
-        self.onOrderDayOhlcNotify = self.event.onOrderDayOhlcNotify
-
-        # onOrderMinuteOhlcNotify(stock_id, ohlc_data)
-        self.onOrderMinuteOhlcNotify = self.event.onOrderMinuteOhlcNotify
-
         self.onDayStart = self.event.onDayStart
         self.onDayEnd = self.event.onDayEnd
 
     def setLoggerLevel(self, level):
         self.logger.setLevel(level=level)
-        self.multi_database_loader.setLoggerLevel(level=level)
+        self.loader.setLoggerLevel(level=level)
+
+    def setDayOhlcNotifyListener(self, listener):
+        self.onDayOhlcNotify += listener
+
+    def setMinuteOhlcNotifyListener(self, listener):
+        self.onMinuteOhlcNotify += listener
 
     def subscribe(self, ohlc_type: OhlcType, request_ohlcs: list):
-        self.multi_database_loader.subscribe(ohlc_type=ohlc_type, request_ohlcs=request_ohlcs)
+        self.loader.subscribe(ohlc_type=ohlc_type, request_ohlcs=request_ohlcs)
 
     def dayStart(self, day: datetime.date):
         self.logger.info(f"Day {day} start.", extra=self.extra)
@@ -65,8 +65,8 @@ class Quote:
         n_day = (end_time - start_time).days
         self.logger.debug(f"#time: {n_day}", extra=self.extra)
 
-        n_day_request = self.multi_database_loader.getRequestStockNumber(OhlcType.Day)
-        n_minute_request = self.multi_database_loader.getRequestStockNumber(OhlcType.Minute)
+        n_day_request = self.loader.getRequestStockNumber(OhlcType.Day)
+        n_minute_request = self.loader.getRequestStockNumber(OhlcType.Minute)
         self.logger.debug(f"#day: {n_day_request}, #minute: {n_minute_request}", extra=self.extra)
 
         # n_request = (n_day_request + n_minute_request * 270) * n_day
@@ -88,11 +88,11 @@ class Quote:
 
             # 一次讀取部分數據
             # TODO: buildByDatas 數據產生器，提供 start_time 到 end_time 之間的數據
-            self.multi_database_loader.buildByDatas(start_time=current_time, end_time=pause_time)
+            self.loader.buildByDatas(start_time=current_time, end_time=pause_time)
 
             # TODO: 1989/06/04 start or end 都只會觸發一次，不因多支股票而重複被呼叫
 
-            for day, day_datas in self.multi_database_loader:
+            for day, day_datas in self.loader:
                 self.dayStart(day=day.date())
 
                 for day_data in day_datas:
@@ -101,14 +101,8 @@ class Quote:
                     if day_data.ohlc_type == OhlcType.Minute:
                         self.onMinuteOhlcNotify(stock_id, ohlc_data)
 
-                        # 請求皆已送出，將 Ohlc 傳給"交易系統"
-                        self.onOrderMinuteOhlcNotify(stock_id, ohlc_data)
-
                     elif day_data.ohlc_type == OhlcType.Day:
                         self.onDayOhlcNotify(stock_id, ohlc_data)
-
-                        # 請求皆已送出，將 Ohlc 傳給"交易系統"
-                        self.onOrderDayOhlcNotify(stock_id, ohlc_data)
 
                     self.logger.debug(f"stock_id: {stock_id}, ohlc_data: {ohlc_data}", extra=self.extra)
 
@@ -124,9 +118,8 @@ if __name__ == "__main__":
 
     quote = Quote()
     quote.setLoggerLevel(level=logging.DEBUG)
-    quote.onMinuteOhlcNotify += onOhlcNotifyListener
-    quote.onDayOhlcNotify += onOhlcNotifyListener
-
+    quote.setDayOhlcNotifyListener(listener=onOhlcNotifyListener)
+    quote.onMinuteOhlcNotify(listener=onOhlcNotifyListener)
     request_ohlcs = []
 
     quote.subscribe(ohlc_type=OhlcType.Day, request_ohlcs=request_ohlcs)
