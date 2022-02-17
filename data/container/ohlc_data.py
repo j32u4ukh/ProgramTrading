@@ -10,7 +10,7 @@ class OhlcData:
     適用於 年/月/日/分 線數據，提供 MetaDataLoader 數據依據時間進行排序
     """
 
-    def __init__(self, stock_id: str, ohlc_type: int, date: str, time: str,
+    def __init__(self, stock_id: str, ohlc_type: OhlcType, date: str, time: str,
                  open_value: str, high_value: str, low_value: str, close_value: str, volumn: str):
         self.stock_id = stock_id
         self.ohlc_type = ohlc_type

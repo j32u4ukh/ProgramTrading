@@ -2,9 +2,9 @@ import datetime
 import random
 from collections import defaultdict
 
-from brokerage.ohlc_data import OhlcData
+from data.container.ohlc_data import OhlcData
+from data.database.day_ohlc_data import DayOhlcData
 from data.loader import DataLoader
-from examples.data.resource.ohlc_data import DayOhlcData
 from enums import OhlcType
 
 
@@ -26,6 +26,9 @@ class MultiDatabaseLoader(DataLoader):
         for day_ohlc in self.day_ohlcs:
             # 一次呼叫，回傳一天的數據
             yield day_ohlc
+
+    def setLoggerLevel(self, level):
+        pass
 
     def subscribe(self, ohlc_type: OhlcType, request_ohlcs: list):
         if ohlc_type == OhlcType.Day:

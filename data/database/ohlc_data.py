@@ -12,9 +12,6 @@ class OhlcDataBase(DataBase, metaclass=ABCMeta):
                  logger_dir="ohlc_data", logger_name=datetime.datetime.now().strftime("%Y-%m-%d_%H-%M-%S")):
         super().__init__(db_name=db_name, folder=folder, logger_dir=logger_dir, logger_name=logger_name)
 
-    def __del__(self):
-        super().__del__()
-
     @abstractmethod
     def setLoggerLevel(self, level):
         self.logger.setLevel(level=level)

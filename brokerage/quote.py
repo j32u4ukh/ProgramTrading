@@ -51,15 +51,15 @@ class Quote:
     def subscribe(self, ohlc_type: OhlcType, request_ohlcs: list):
         self.loader.subscribe(ohlc_type=ohlc_type, request_ohlcs=request_ohlcs)
 
+    # region 協助外部系統知道現在的時間點
     def dayStart(self, day: datetime.date):
         self.logger.info(f"Day {day} start.", extra=self.extra)
-        # self.pause()
         self.onDayStart(day)
 
     def dayEnd(self, day: datetime.date):
         self.logger.info(f"Day {day} end.", extra=self.extra)
-        # self.pause()
         self.onDayEnd(day)
+    # endregion
 
     def run(self, start_time: datetime.datetime, end_time: datetime.datetime):
         n_day = (end_time - start_time).days
@@ -80,35 +80,36 @@ class Quote:
         time_delta = datetime.timedelta(days=math.floor(50000.0 / n_request))
         self.logger.debug(f"time_delta: {time_delta}", extra=self.extra)
 
-        next_current = time_delta + datetime.timedelta(days=1)
+        next_time = time_delta + datetime.timedelta(days=1)
 
         while current_time <= end_time:
             pause_time = min(current_time + time_delta, end_time)
             self.logger.info(f"start_time: {current_time}, end_time: {pause_time}", extra=self.extra)
 
-            # 一次讀取部分數據
+            # 一次讀取數天數據(天數取決於股票多寡，以及總共天數長短)
             # TODO: buildByDatas 數據產生器，提供 start_time 到 end_time 之間的數據
-            self.loader.buildByDatas(start_time=current_time, end_time=pause_time)
+            self.loader.loadData(start_time=current_time, end_time=pause_time)
 
             # TODO: 1989/06/04 start or end 都只會觸發一次，不因多支股票而重複被呼叫
 
-            for day, day_datas in self.loader:
-                self.dayStart(day=day.date())
+            # 一次讀取一天數據
+            for data_time, datas in self.loader:
+                self.dayStart(day=data_time.date())
 
-                for day_data in day_datas:
-                    stock_id, ohlc_data = day_data.formData()
+                for data in datas:
+                    stock_id, ohlc_data = data.formData()
 
-                    if day_data.ohlc_type == OhlcType.Minute:
+                    if data.ohlc_type == OhlcType.Minute:
                         self.onMinuteOhlcNotify(stock_id, ohlc_data)
 
-                    elif day_data.ohlc_type == OhlcType.Day:
+                    elif data.ohlc_type == OhlcType.Day:
                         self.onDayOhlcNotify(stock_id, ohlc_data)
 
                     self.logger.debug(f"stock_id: {stock_id}, ohlc_data: {ohlc_data}", extra=self.extra)
 
-                self.dayEnd(day=day.date())
+                self.dayEnd(day=data_time.date())
 
-            current_time += next_current
+            current_time += next_time
 
 
 if __name__ == "__main__":

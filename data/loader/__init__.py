@@ -7,12 +7,12 @@ from submodule.Xu3.utils import getLogger
 from submodule.events import Event
 
 
-class IDataLoader(metaclass=ABCMeta):
+class DataLoader(metaclass=ABCMeta):
     """
-    定義提供給報價系統(Quote)的數據類別，必須要提供的方法
-    """
+   定義提供給報價系統(Quote)的數據類別，必須要提供的方法
+   """
 
-    def __init__(self, logger_dir="database_loader", logger_name=datetime.datetime.now().strftime("%Y-%m-%d_%H-%M-%S")):
+    def __init__(self, logger_dir="data_loader", logger_name=datetime.datetime.now().strftime("%Y-%m-%d_%H-%M-%S")):
         self.logger_dir = logger_dir
         self.logger_name = logger_name
         self.extra = {"className": self.__class__.__name__}
@@ -22,13 +22,18 @@ class IDataLoader(metaclass=ABCMeta):
                                 file_dir=self.logger_dir,
                                 instance=True)
 
+        self.start_time = None
+        self.end_time = None
+        self.n_data = 0
+        self.event = Event()
+
     @abstractmethod
     def __iter__(self):
         raise NotImplementedError
 
     @abstractmethod
     def setLoggerLevel(self, level):
-        pass
+        self.logger.setLevel(level=level)
 
     @abstractmethod
     def subscribe(self, ohlc_type, requests: list):
@@ -50,44 +55,6 @@ class IDataLoader(metaclass=ABCMeta):
     @abstractmethod
     def close(self):
         # 關閉資料庫
-        pass
-
-
-class DataLoader:
-    def __init__(self, logger_dir="data_loader", logger_name=datetime.datetime.now().strftime("%Y-%m-%d_%H-%M-%S")):
-        self.logger_dir = logger_dir
-        self.logger_name = logger_name
-        self.extra = {"className": self.__class__.__name__}
-        self.logger = getLogger(logger_name=self.logger_name,
-                                to_file=True,
-                                time_file=False,
-                                file_dir=self.logger_dir,
-                                instance=True)
-
-        self.start_time = None
-        self.end_time = None
-        self.n_data = 0
-        self.event = Event()
-
-    def __iter__(self):
-        pass
-
-    def setLoggerLevel(self, level):
-        self.logger.setLevel(level=level)
-
-    def subscribe(self, ohlc_type, requests: list):
-        pass
-
-    def getRequestStockNumber(self, ohlc_type):
-        pass
-
-    def getRequestStocks(self, ohlc_type):
-        pass
-
-    def loadData(self, start_time: datetime.datetime, end_time: datetime.datetime):
-        pass
-
-    def close(self):
         pass
 
 
