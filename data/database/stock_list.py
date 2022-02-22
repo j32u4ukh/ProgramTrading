@@ -195,7 +195,7 @@ if __name__ == "__main__":
             self.stock_list.getTable()
 
         def selectByStockIds(self):
-            results = self.stock_list.selectByStockIds(stock_ids=["00739", "2812"])
+            results = self.stock_list.selectByStockIds(stock_ids=["00739", "2812", "6005"])
 
             output = []
 
@@ -229,6 +229,6 @@ if __name__ == "__main__":
 
     stock_list_tester = StockListTester()
     # stock_list_tester.display()
-    # stock_list_tester.selectByStockIds()
-    stock_list_tester.selectByPriceRange(price_range=(29.5, 30))
+    stock_list_tester.selectByStockIds()
+    # stock_list_tester.selectByPriceRange(price_range=(29.5, 30))
     stock_list_tester.close()

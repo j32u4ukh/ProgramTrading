@@ -1,7 +1,7 @@
 import datetime
 import logging
 import math
-from data.loader.multi_database_loader import MultiDatabaseLoader
+from data.loader.multi_database import MultiDatabaseLoader
 from enums import OhlcType
 from submodule.Xu3.utils import getLogger
 from submodule.events import Event

@@ -16,6 +16,8 @@ class MultiDatabaseLoader(DataLoader):
 
         self.start_time = None
         self.end_time = None
+
+        # 每次儲存一天內的數據，供外部遍歷呼叫
         self.day_ohlcs = None
 
         # TODO: ohlcs_dict 利用 OhlcType 作為 key，區分日線數據或分線數據，而非分別使用 self.day_ohlc 和 self.minute_ohlc
@@ -28,7 +30,7 @@ class MultiDatabaseLoader(DataLoader):
             yield day_ohlc
 
     def setLoggerLevel(self, level):
-        pass
+        self.logger.setLevel(level=level)
 
     def subscribe(self, ohlc_type: OhlcType, request_ohlcs: list):
         if ohlc_type == OhlcType.Day:
@@ -44,6 +46,8 @@ class MultiDatabaseLoader(DataLoader):
                     # self.minute_ohlc[request_ohlc] = MinuteOhlcData(stock_id=request_ohlc,
                     #                                                 logger_dir=self.logger_dir,
                     #                                                 logger_name=self.logger_name)
+
+                    # NOTE: 暫時用 DayOhlcData 提供數據來測試程式邏輯
                     self.minute_ohlc[request_ohlc] = DayOhlcData(stock_id=request_ohlc,
                                                                  logger_dir=self.logger_dir,
                                                                  logger_name=self.logger_name)
@@ -71,21 +75,21 @@ class MultiDatabaseLoader(DataLoader):
 
         return request_stocks
 
-    def setTimeRange(self, start_time: datetime.datetime = None, end_time: datetime.datetime = None):
-        if start_time is None:
-            start_time = datetime.datetime.today() - datetime.timedelta(days=2000)
-
-        if end_time is None:
-            end_time = datetime.datetime.today()
-
-        self.start_time = start_time
-        self.end_time = end_time
+    # def setTimeRange(self, start_time: datetime.datetime = None, end_time: datetime.datetime = None):
+    #     if start_time is None:
+    #         start_time = datetime.datetime.today() - datetime.timedelta(days=2000)
+    #
+    #     if end_time is None:
+    #         end_time = datetime.datetime.today()
+    #
+    #     self.start_time = start_time
+    #     self.end_time = end_time
 
     # TODO: 或許可在這裡額外添加 08:30/(13:25/13:30)/14:00 等時間戳，用以協助推動時間
-    def loadData(self, start_time: datetime.datetime = None, end_time: datetime.datetime = None):
+    def loadData(self, start_time: datetime.datetime, end_time: datetime.datetime):
         self.day_ohlcs = []
 
-        temp_minute_times = ["09:30", "10:30", "11:30", "12:30", "13:25"]
+        temp_minute_times = ["08:30", "09:00", "09:30", "10:30", "11:30", "12:30", "13:25", "13:30", "14:00"]
 
         # 以日期為 key，儲存同一天的數據
         day_map = defaultdict(list)
@@ -104,7 +108,7 @@ class MultiDatabaseLoader(DataLoader):
                 # self.datas.append([stock_id, date_time[0], (date_time[1], o, h, l, c, v)])
 
                 # 以日期為 key，儲存同一天的數據
-                ohlc_data = OhlcData(stock_id=stock_id, ohlc_type=OhlcType.Minute.value, date=day, time=m,
+                ohlc_data = OhlcData(stock_id=stock_id, ohlc_type=OhlcType.Minute, date=day, time=m,
                                      open_value=o, high_value=h, low_value=l, close_value=c, volumn=v)
                 # day_map[day].append([stock_id, day, m, o, h, l, c, v])
                 day_map[day].append(ohlc_data)
@@ -118,7 +122,7 @@ class MultiDatabaseLoader(DataLoader):
                 day, o, h, l, c, v = ohlc
 
                 # 以日期為 key，儲存同一天的數據
-                ohlc_data = OhlcData(stock_id=stock_id, ohlc_type=OhlcType.Day.value, date=day, time="",
+                ohlc_data = OhlcData(stock_id=stock_id, ohlc_type=OhlcType.Day, date=day, time="",
                                      open_value=o, high_value=h, low_value=l, close_value=c, volumn=v)
                 # day_map[day].append([stock_id, day, "", o, h, l, c, v])
                 day_map[day].append(ohlc_data)
@@ -130,7 +134,7 @@ class MultiDatabaseLoader(DataLoader):
         for day in days:
             # 將日線數據排到同一天的分線數據之後
             # stock_id, day, ("", o, h, l, c, v) = day_data
-            day_datas = sorted(day_map[day])
+            day_datas = OhlcData.sorted(day_map[day])
 
             # day_ohlc = []
             #
@@ -149,15 +153,6 @@ class MultiDatabaseLoader(DataLoader):
 
             self.day_ohlcs.append((datetime.datetime.strptime(day, "%Y/%m/%d"), day_datas))
 
-    def getHistoryData(self, start_time: datetime.datetime = None, end_time: datetime.datetime = None):
-        if start_time is None:
-            start_time = datetime.datetime.today() - datetime.timedelta(days=2000)
-
-        if end_time is None:
-            end_time = datetime.datetime.today()
-
-        pass
-
     def close(self):
         for day_ohlc in self.day_ohlc.values():
             day_ohlc.close(auto_commit=True)
@@ -167,4 +162,18 @@ class MultiDatabaseLoader(DataLoader):
 
 
 if __name__ == "__main__":
-    pass
+    loader = MultiDatabaseLoader()
+    loader.subscribe(ohlc_type=OhlcType.Day, request_ohlcs=["2812", "6005"])
+    loader.subscribe(ohlc_type=OhlcType.Minute, request_ohlcs=["2812", "6005"])
+
+    loader.loadData(start_time=datetime.datetime(2021, 8, 1, 7, 0, 0),
+                    end_time=datetime.datetime(2021, 8, 10, 19, 0, 0))
+
+    for data_time, datas in loader:
+        print(f"Day start: {data_time.date()}")
+
+        for data in datas:
+            stock_id, ohlc_data = data.formData()
+            print(f"({stock_id}) {data.ohlc_type} ohlc_data: {ohlc_data}")
+
+        print(f"Day end: {data_time.date()}")

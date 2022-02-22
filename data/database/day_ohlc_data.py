@@ -101,7 +101,7 @@ if __name__ == "__main__":
         def __init__(self, stock_id):
             self.day_data = DayOhlcData(stock_id=stock_id)
 
-        def __del__(self):
+        def close(self):
             self.day_data.close()
 
         def arbitraryTest(self):
@@ -132,3 +132,4 @@ if __name__ == "__main__":
 
     dt = DayOhlcDataTester(stock_id="2812")
     dt.checkOhlcDayData()
+    dt.close()
