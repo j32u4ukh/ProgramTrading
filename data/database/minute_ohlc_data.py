@@ -85,8 +85,8 @@ if __name__ == "__main__":
         def __del__(self):
             self.minute_data.close()
 
-        def display(self, columns: list = None, sort_by: str = "TIME", sort_type="ASC",
-                    limit: int = 20, offset: int = 0):
+        def display(self, columns: list = None, sort_by: str = "TIME",
+                    sort_type: OhlcDataBase.SortType = OhlcDataBase.SortType.A2Z, limit: int = 20, offset: int = 0):
             result = self.minute_data.select(columns=columns, sort_by=sort_by, sort_type=sort_type,
                                              limit=limit, offset=offset)
 

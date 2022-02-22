@@ -1,6 +1,7 @@
 import datetime
 import logging
 import math
+
 from data.loader.multi_database import MultiDatabaseLoader
 from enums import OhlcType
 from submodule.Xu3.utils import getLogger
@@ -56,18 +57,25 @@ class Quote:
         self.logger.info(f"Day {day} start.", extra=self.extra)
         self.onDayStart(day)
 
+    def setOnDayStartListener(self, listener):
+        self.onDayStart += listener
+
     def dayEnd(self, day: datetime.date):
         self.logger.info(f"Day {day} end.", extra=self.extra)
         self.onDayEnd(day)
+
+    def setOnDayEndListener(self, listener):
+        self.onDayEnd += listener
+
     # endregion
 
     def run(self, start_time: datetime.datetime, end_time: datetime.datetime):
         n_day = (end_time - start_time).days
-        self.logger.debug(f"#time: {n_day}", extra=self.extra)
+        self.logger.debug(f"n_day: {n_day}", extra=self.extra)
 
         n_day_request = self.loader.getRequestStockNumber(OhlcType.Day)
         n_minute_request = self.loader.getRequestStockNumber(OhlcType.Minute)
-        self.logger.debug(f"#day: {n_day_request}, #minute: {n_minute_request}", extra=self.extra)
+        self.logger.debug(f"#day_request: {n_day_request}, #minute_request: {n_minute_request}", extra=self.extra)
 
         # n_request = (n_day_request + n_minute_request * 270) * n_day
         n_request = (n_day_request + n_minute_request * 500) * n_day
@@ -77,9 +85,10 @@ class Quote:
 
         # n_request = 25000 -> 一次取得 2 天的數據；n_request = 15000 -> 一次取得 3.33 天(無條件進位為 4 天)的數據
         # n_request ≧ 50000 -> 一次取得 1 天的數據
-        time_delta = datetime.timedelta(days=math.floor(50000.0 / n_request))
+        time_delta = datetime.timedelta(days=math.ceil(50000.0 / n_request))
         self.logger.debug(f"time_delta: {time_delta}", extra=self.extra)
 
+        # 比 time_delta 多一天是因為 loader 在取得數據時，開始和結束的時間點都會包含，多一天才不會前一次的結束點重疊
         next_time = time_delta + datetime.timedelta(days=1)
 
         while current_time <= end_time:
@@ -87,10 +96,7 @@ class Quote:
             self.logger.info(f"start_time: {current_time}, end_time: {pause_time}", extra=self.extra)
 
             # 一次讀取數天數據(天數取決於股票多寡，以及總共天數長短)
-            # TODO: buildByDatas 數據產生器，提供 start_time 到 end_time 之間的數據
             self.loader.loadData(start_time=current_time, end_time=pause_time)
-
-            # TODO: 1989/06/04 start or end 都只會觸發一次，不因多支股票而重複被呼叫
 
             # 一次讀取一天數據
             for data_time, datas in self.loader:
@@ -113,16 +119,28 @@ class Quote:
 
 
 if __name__ == "__main__":
-    def onOhlcNotifyListener(stock_id, ohlc_data):
-        print(f"[onOhlcNotifyListener] stock_id: {stock_id}, ohlc_data: {ohlc_data}")
+    def onDayOhlcNotifyListener(stock_id, ohlc_data):
+        print(f"[onDayOhlcNotifyListener] stock_id: {stock_id}, ohlc_data: {ohlc_data}")
+
+    def onMinuteOhlcNotifyListener(stock_id, ohlc_data):
+        print(f"[onMinuteOhlcNotifyListener] stock_id: {stock_id}, ohlc_data: {ohlc_data}")
+
+    def onDayStartListener(day: datetime.date):
+        print(f"[onDayStartListener] day: {day}")
+
+    def onDayEndListener(day: datetime.date):
+        print(f"[onDayEndListener] day: {day}")
 
 
     quote = Quote()
     quote.setLoggerLevel(level=logging.DEBUG)
-    quote.setDayOhlcNotifyListener(listener=onOhlcNotifyListener)
-    quote.onMinuteOhlcNotify(listener=onOhlcNotifyListener)
-    request_ohlcs = []
+    quote.setDayOhlcNotifyListener(listener=onDayOhlcNotifyListener)
+    quote.setMinuteOhlcNotifyListener(listener=onMinuteOhlcNotifyListener)
+    quote.setOnDayStartListener(listener=onDayStartListener)
+    quote.setOnDayEndListener(listener=onDayEndListener)
 
+    request_ohlcs = ["2812", "6005"]
     quote.subscribe(ohlc_type=OhlcType.Day, request_ohlcs=request_ohlcs)
     quote.subscribe(ohlc_type=OhlcType.Minute, request_ohlcs=request_ohlcs)
+
     quote.run(start_time=datetime.datetime(2021, 7, 1), end_time=datetime.datetime(2021, 7, 10))

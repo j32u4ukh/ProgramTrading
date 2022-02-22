@@ -2,6 +2,8 @@ import datetime
 import random
 from collections import defaultdict
 
+import dateutil.parser as time_parser
+
 from data.container.ohlc_data import OhlcData
 from data.database.day_ohlc_data import DayOhlcData
 from data.loader import DataLoader
@@ -94,47 +96,52 @@ class MultiDatabaseLoader(DataLoader):
         # 以日期為 key，儲存同一天的數據
         day_map = defaultdict(list)
 
+        # region Minute
         for stock_id, minute_ohlc in self.minute_ohlc.items():
-            ohlcs = minute_ohlc.selectTimeFliter(start_time=start_time,
-                                                 end_time=end_time,
-                                                 sort_by="TIME")
+            # [start_time, end_time] 開始和結束時間點都包含
+            ohlcs = minute_ohlc.selectTimeFliter(start_time=start_time, end_time=end_time)
 
             for ohlc in ohlcs:
-                t, o, h, l, c, v = ohlc
+                date_time, o, h, l, c, v = ohlc
+
+                # NOTE: 暫時測試用
                 rand = random.randint(0, 4)
-                day = t
-                m = temp_minute_times[rand]
-                # date_time = t.split(" ")
+                date = date_time
+                time = temp_minute_times[rand]
+
+                # TODO: 實際接上 MinuteOhlcData 後，使用下方程式將
+                # date, time = date_time.split(" ")
                 # self.datas.append([stock_id, date_time[0], (date_time[1], o, h, l, c, v)])
 
                 # 以日期為 key，儲存同一天的數據
-                ohlc_data = OhlcData(stock_id=stock_id, ohlc_type=OhlcType.Minute, date=day, time=m,
+                ohlc_data = OhlcData(stock_id=stock_id, ohlc_type=OhlcType.Minute, date=date, time=time,
                                      open_value=o, high_value=h, low_value=l, close_value=c, volumn=v)
-                # day_map[day].append([stock_id, day, m, o, h, l, c, v])
-                day_map[day].append(ohlc_data)
+                day_map[date].append(ohlc_data)
+        # endregion
 
+        # region Day
         for stock_id, day_ohlc in self.day_ohlc.items():
             ohlcs = day_ohlc.selectTimeFliter(start_time=start_time,
                                               end_time=end_time,
                                               sort_by="TIME")
 
             for ohlc in ohlcs:
-                day, o, h, l, c, v = ohlc
+                date, o, h, l, c, v = ohlc
 
                 # 以日期為 key，儲存同一天的數據
-                ohlc_data = OhlcData(stock_id=stock_id, ohlc_type=OhlcType.Day, date=day, time="",
+                ohlc_data = OhlcData(stock_id=stock_id, ohlc_type=OhlcType.Day, date=date, time="",
                                      open_value=o, high_value=h, low_value=l, close_value=c, volumn=v)
-                # day_map[day].append([stock_id, day, "", o, h, l, c, v])
-                day_map[day].append(ohlc_data)
+                day_map[date].append(ohlc_data)
+        # endregion
 
         days = list(day_map.keys())
         days.sort()
         self.logger.info(f"days: {days}", extra=self.extra)
 
-        for day in days:
+        for date in days:
             # 將日線數據排到同一天的分線數據之後
             # stock_id, day, ("", o, h, l, c, v) = day_data
-            day_datas = OhlcData.sorted(day_map[day])
+            day_datas = OhlcData.sorted(day_map[date])
 
             # day_ohlc = []
             #
@@ -151,7 +158,7 @@ class MultiDatabaseLoader(DataLoader):
             #     ohlc_data = f"{date_time}, {ohlc[1]}, {ohlc[2]}, {ohlc[3]}, {ohlc[4]}, {ohlc[5]}"
             #     day_ohlc.append((stock_id, ohlc_data))
 
-            self.day_ohlcs.append((datetime.datetime.strptime(day, "%Y/%m/%d"), day_datas))
+            self.day_ohlcs.append((time_parser.parse(date), day_datas))
 
     def close(self):
         for day_ohlc in self.day_ohlc.values():

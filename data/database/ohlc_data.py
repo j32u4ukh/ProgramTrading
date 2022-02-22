@@ -68,7 +68,7 @@ class OhlcDataBase(DataBase, metaclass=ABCMeta):
     @abstractmethod
     def getHistoryData(self, end_time: datetime.datetime, start_time: datetime.datetime = None):
         results = self.selectTimeFliter(sort_by="TIME",
-                                        sort_type="ASC",
+                                        sort_type=DataBase.SortType.A2Z,
                                         start_time=start_time,
                                         end_time=end_time)
 
@@ -169,8 +169,8 @@ class OhlcDataBase(DataBase, metaclass=ABCMeta):
 
         return start_time, end_time, delta_time
 
-    def selectTimeFliter(self, table_name: str = None, columns: list = None,
-                         sort_by: str = None, sort_type="ASC", limit: int = None,
+    def selectTimeFliter(self, table_name: str = None, columns: list = None, sort_by: str = "TIME",
+                         sort_type: DataBase.SortType = DataBase.SortType.A2Z, limit: int = None,
                          start_time: datetime.datetime = None, end_time: datetime.datetime = None):
         columns_name = self.formatColumns(columns=columns)
 
@@ -193,7 +193,7 @@ class OhlcDataBase(DataBase, metaclass=ABCMeta):
             sql += f" WHERE TIME <= '{time_end}'"
 
         if sort_by is not None:
-            sql += f" ORDER BY {sort_by} {sort_type}"
+            sql += f" ORDER BY {sort_by} {sort_type.value}"
 
         if limit is not None:
             sql += f" LIMIT {limit}"

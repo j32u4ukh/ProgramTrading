@@ -1,8 +1,6 @@
-import datetime
 import functools
 from abc import abstractmethod
-from functools import total_ordering
-import dateutil.parser as time_parser
+
 from enums import OhlcType
 
 
@@ -104,12 +102,3 @@ if __name__ == "__main__":
 
     for data in datas:
         print(data)
-
-    # dt0 = datetime.datetime(2021, 8, 5, 11, 28)
-    # dt1 = datetime.datetime(2021, 8, 5, 12, 0)
-    # dt2 = datetime.datetime(2021, 8, 5, 11, 29)
-    # dts = [dt0, dt1, dt2]
-    # dts = sorted(dts)
-    #
-    # for dt in dts:
-    #     print(dt)
