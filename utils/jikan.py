@@ -3,7 +3,7 @@ import datetime
 import time
 from functools import total_ordering
 
-from dateutil.parser import parse
+import dateutil.parser as time_parser
 
 """
 datetime
@@ -742,8 +742,8 @@ if __name__ == "__main__":
 
         """如何將字符串日期轉換為 datetime 呢？
         dateutil 中的 parser 模塊可以幫我們將幾乎任何形式的字符串日期數據解析為datetime 對象："""
-        print(parse('January 31, 2010'))
-        print(parse('31, March 31, 2010, 10:51pm'))
+        print(time_parser.parse('January 31, 2010'))
+        print(time_parser.parse('31, March 31, 2010, 10:51pm'))
 
         """如何將 datetime 對象轉換為任何格式的日期？
         你可以用 strftime() 方法將 datetime 對象轉換為幾乎任何日期格式的表現形式。你需要傳入正確日期格式的表示符號作為參數："""
@@ -755,7 +755,7 @@ if __name__ == "__main__":
         print(f'{d1.year}-Q{d1.month // 4 + 1}')  # 2010-Q3
 
         date_string = "1994-09-05"
-        struct_date1 = parse(date_string)
+        struct_date1 = time_parser.parse(date_string)
         struct_date2 = datetime.datetime.strptime(date_string, "%Y-%m-%d")
         print(struct_date1)
         print(struct_date2)

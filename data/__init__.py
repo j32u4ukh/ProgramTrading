@@ -1,7 +1,7 @@
 import datetime
 import json
-from decimal import Decimal
-
+from decimal import Decimal, ROUND_HALF_UP
+import dateutil.parser as time_parser
 from data.database.stock_list import StockList
 from enums import Category
 
@@ -123,30 +123,28 @@ class StockCategory:
 
 
 # Ohlc 數據分析
-def parseOhlcData(ohlc_data: str, is_minute_data=False, is_str_datetime=False):
+def parseOhlcData(ohlc_data: str, digits: int = 4):
     """
-    解析 Ohlc 字串數據，
+    解析 Ohlc 字串數據，以適當的變數型態返回
 
-    :param ohlc_data: 依序為: 年/月/日 時:分, 開盤價, 最高價, 最低價, 收盤價, 成交量
-                      例： 2020/07/06 13:06, 335.500000, 336.000000, 335.500000, 335.500000, 77
-    :param is_minute_data: 是否為 1 分 K(時間格式會有所不同)
-    :param is_str_datetime: 是否以字串形式回傳時間
-    :return:
+    :param ohlc_data: 依序為: "年/月/日 時:分,      開盤價,     最高價,      最低價,     收盤價, 成交量"
+                      例： "2020/07/06 13:06, 335.500000, 336.000000, 335.500000, 335.500000, 77"
+    :param digits: 價格保留到小數點後面幾位
+    :return: 時間, 開盤價, 最高價, 最低價, 收盤價, 成交量
     """
     split_data = ohlc_data.split(', ')
 
-    if is_str_datetime:
-        date_time = split_data[0]
-    else:
-        if is_minute_data:
-            date_time = datetime.datetime.strptime(split_data[0], "%Y/%m/%d %H:%M")
-        else:
-            date_time = datetime.datetime.strptime(split_data[0], "%Y/%m/%d")
+    # 確保 digits 不小於 0
+    digits = max(digits, 0)
 
-    open_value = Decimal(split_data[1])
-    high_value = Decimal(split_data[2])
-    low_value = Decimal(split_data[3])
-    close_value = Decimal(split_data[4])
+    # 定義價格保留到小數點後面幾位
+    exp = Decimal('.' + '0' * digits)
+
+    date_time = time_parser.parse(split_data[0])
+    open_value = Decimal(split_data[1]).quantize(exp, ROUND_HALF_UP)
+    high_value = Decimal(split_data[2]).quantize(exp, ROUND_HALF_UP)
+    low_value = Decimal(split_data[3]).quantize(exp, ROUND_HALF_UP)
+    close_value = Decimal(split_data[4]).quantize(exp, ROUND_HALF_UP)
     volumn = int(split_data[5])
 
     return date_time, open_value, high_value, low_value, close_value, volumn

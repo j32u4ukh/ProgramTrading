@@ -49,8 +49,7 @@ class TickDatabaseLoader(DatabaseLoader):
             ohlc_data = f"{ohlc[0]}, {ohlc[1]}, {ohlc[2]}, {ohlc[3]}, {ohlc[4]}, {ohlc[5]}"
 
             # self.logger.debug(f"ohlc_data: {ohlc_data}")
-            (date_time, open_value, high_value, low_value, close_value,
-             volumn) = parseOhlcData(ohlc_data, is_minute_data=True, is_str_datetime=True)
+            date_time, open_value, high_value, low_value, close_value, volumn = parseOhlcData(ohlc_data)
 
             """
             ex: XXX 15960 17010 20200707 132505 672535 33800 33950 33800 2505 1

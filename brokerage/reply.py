@@ -8,8 +8,8 @@ from submodule.events import Event
 
 
 class Reply:
-    """ 回報系統
-    管理用戶買賣請求、買賣請求成立後的回報
+    """ 輔助系統
+    協助用戶使用這個系統，比如連線成功通知、斷線通知、、、等，目前我的系統似乎還用不到。
     """
 
     def __init__(self, logger_dir="brokerage", logger_name=datetime.datetime.now().strftime("%Y-%m-%d_%H-%M-%S")):
@@ -70,3 +70,7 @@ class Reply:
     def onSoldListener(self, user: int, stock_id: str, guid: str, time: datetime.datetime, price: Decimal,
                        volumn: int = 1):
         pass
+
+
+if __name__ == "__main__":
+    pass
